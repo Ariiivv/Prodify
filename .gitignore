@@ -10,7 +10,7 @@ node_modules/
 dist/
 
 # ML
-models/
+/models/
 data/
 
 # OS
