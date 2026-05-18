@@ -65,3 +65,32 @@ def log_session(session_data: FocusSessionCreate, db: Session = Depends(get_db))
     db.commit()
     db.refresh(db_session)
     return db_session
+
+@router.get("/users/{user_id}/analytics")
+def get_user_analytics(user_id: str, db: Session = Depends(get_db)):
+    sessions = db.query(FocusSession).filter(
+        FocusSession.user_id == user_id
+    ).all()
+
+    total_sessions = len(sessions)
+    total_minutes = sum(session.duration_minutes for session in sessions)
+
+    avg_session_length = (
+        total_minutes / total_sessions if total_sessions > 0 else 0
+    )
+
+    # Productivity Score Logic
+    productivity_score = 0
+    if total_sessions > 0:
+        productivity_score = min(
+            (avg_session_length / 45) * 100,
+            100
+        )
+
+    return {
+        "user_id": user_id,
+        "total_sessions": total_sessions,
+        "total_focus_minutes": total_minutes,
+        "average_session_length": avg_session_length,
+        "productivity_score": round(productivity_score, 2)
+    }
