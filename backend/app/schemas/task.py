@@ -1,8 +1,14 @@
-# Location: app/schemas/task.py
 from pydantic import BaseModel
 
+
 class TaskCreate(BaseModel):
-    course_id: str  # 👈 Change this from int to str
+    work_item_id: str
+    title: str
+
+
+class TaskResponse(BaseModel):
+    id: str
+    work_item_id: str
     title: str
 
     class Config:

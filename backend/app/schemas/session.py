@@ -1,8 +1,16 @@
-# Location: app/schemas/session.py
 from pydantic import BaseModel
 
-class FocusSessionCreate(BaseModel):
-    user_id: str  # 👈 Change this from int to str
+
+class SessionCreate(BaseModel):
+    user_id: str
+    task_id: str
+    duration_minutes: int
+
+
+class SessionResponse(BaseModel):
+    id: str
+    user_id: str
+    task_id: str
     duration_minutes: int
 
     class Config:

@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 venv/
 .env
+prodify.db
 
 # Node
 node_modules/

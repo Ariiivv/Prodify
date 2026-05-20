@@ -3,7 +3,7 @@ from app.api.routes import router
 from app.core.database import engine, Base
 
 # Import models so SQLAlchemy registers them
-from app.models import user, course, task, session
+from app.models import user, workspace, work_item, task, session, behavioral_state
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
