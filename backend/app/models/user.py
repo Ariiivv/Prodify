@@ -23,6 +23,12 @@ class User(Base):
         cascade="all, delete-orphan"
     )
 
+    work_items = relationship(
+        "WorkItem",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
     behavioral_state = relationship(
         "BehavioralState",
         back_populates="user",

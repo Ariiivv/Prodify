@@ -1,12 +1,15 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, ConfigDict
+from typing import Literal, Optional
 from datetime import datetime
+
+
+WorkItemType = Literal["one_time", "recurring", "long_term"]
 
 
 class WorkItemCreate(BaseModel):
     title: str
     description: Optional[str] = None
-    type: str  # one_time | recurring | long_term
+    type: WorkItemType
     total_estimated_minutes: Optional[int] = None
     due_date: Optional[datetime] = None
     workspace_id: str
@@ -14,6 +17,8 @@ class WorkItemCreate(BaseModel):
 
 
 class WorkItemResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     title: str
     description: Optional[str]
@@ -24,6 +29,3 @@ class WorkItemResponse(BaseModel):
     created_at: datetime
     user_id: str
     workspace_id: str
-
-    class Config:
-        from_attributes = True

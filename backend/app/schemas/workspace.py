@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 
@@ -8,10 +8,9 @@ class WorkspaceCreate(BaseModel):
 
 
 class WorkspaceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     name: str
     user_id: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True

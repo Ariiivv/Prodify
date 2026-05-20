@@ -24,7 +24,7 @@ class WorkItem(Base):
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     workspace_id = Column(String, ForeignKey("workspaces.id"), nullable=False)
 
-    user = relationship("User")
+    user = relationship("User", back_populates="work_items")
     workspace = relationship("Workspace", back_populates="work_items")
 
     tasks = relationship(
