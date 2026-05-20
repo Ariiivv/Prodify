@@ -3,25 +3,22 @@ from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 
-# Schemas
 from app.schemas.user import UserCreate
 from app.schemas.workspace import WorkspaceCreate
 from app.schemas.work_item import WorkItemCreate
-from app.schemas.task import TaskCreate
-from app.schemas.session import FocusSessionCreate
+from app.schemas.task import TaskCreate, TaskResponse
+from app.schemas.session import SessionCreate, SessionResponse
 
-# Models
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.models.work_item import WorkItem
 from app.models.task import Task
-from app.models.session import Session as FocusSession
+from app.models.session import Session as SessionModel
 
 router = APIRouter()
 
 
-# -------------------- DB Dependency --------------------
-
+# ---------------- DB ----------------
 def get_db():
     db = SessionLocal()
     try:
@@ -30,118 +27,121 @@ def get_db():
         db.close()
 
 
-# -------------------- Health --------------------
+# ---------------- HELPERS ----------------
+def get_or_404(db: Session, model, model_id: str, name: str):
+    obj = db.query(model).filter(model.id == model_id).first()
+    if not obj:
+        raise HTTPException(status_code=400, detail=f"Invalid {name}")
+    return obj
 
+
+# ---------------- HEALTH ----------------
 @router.get("/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "service": "prodify-backend"
-    }
+def health():
+    return {"status": "healthy", "service": "prodify-backend"}
 
 
-# -------------------- User --------------------
-
+# ---------------- USERS ----------------
 @router.post("/users")
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = User(email=user.email, name=user.name)
-    db.add(db_user)
+    obj = User(email=user.email, name=user.name)
+    db.add(obj)
     db.commit()
-    db.refresh(db_user)
-    return db_user
+    db.refresh(obj)
+    return obj
 
 
-# -------------------- Workspace --------------------
-
+# ---------------- WORKSPACE ----------------
 @router.post("/workspaces")
-def create_workspace(workspace: WorkspaceCreate, db: Session = Depends(get_db)):
-    db_workspace = Workspace(
-        name=workspace.name,
-        user_id=workspace.user_id
-    )
-    db.add(db_workspace)
+def create_workspace(data: WorkspaceCreate, db: Session = Depends(get_db)):
+    get_or_404(db, User, data.user_id, "user_id")
+
+    obj = Workspace(name=data.name, user_id=data.user_id)
+    db.add(obj)
     db.commit()
-    db.refresh(db_workspace)
-    return db_workspace
+    db.refresh(obj)
+    return obj
 
 
-# -------------------- Work Item --------------------
-
+# ---------------- WORK ITEM ----------------
 @router.post("/work-items")
-def create_work_item(
-    work_item: WorkItemCreate,
-    db: Session = Depends(get_db)
-):
-    db_item = WorkItem(
-        title=work_item.title,
-        description=work_item.description,
-        type=work_item.type,
-        total_estimated_minutes=work_item.total_estimated_minutes,
-        due_date=work_item.due_date,
-        workspace_id=work_item.workspace_id,
-        user_id=work_item.user_id
-    )
-    db.add(db_item)
+def create_work_item(data: WorkItemCreate, db: Session = Depends(get_db)):
+    obj = WorkItem(**data.dict())
+    db.add(obj)
     db.commit()
-    db.refresh(db_item)
-    return db_item
+    db.refresh(obj)
+    return obj
 
 
-# -------------------- Task --------------------
+# ---------------- TASK ----------------
+@router.post("/tasks", response_model=TaskResponse)
+def create_task(data: TaskCreate, db: Session = Depends(get_db)):
 
-@router.post("/tasks")
-def create_task(task: TaskCreate, db: Session = Depends(get_db)):
-    db_task = Task(
-        work_item_id=task.work_item_id,
-        title=task.title
-    )
-    db.add(db_task)
+    get_or_404(db, WorkItem, data.work_item_id, "work_item_id")
+
+    obj = Task(**data.dict())
+    db.add(obj)
     db.commit()
-    db.refresh(db_task)
-    return db_task
+    db.refresh(obj)
+    return obj
 
 
-# -------------------- Session --------------------
+# ---------------- SESSION ----------------
+@router.post("/sessions", response_model=SessionResponse)
+def create_session(data: SessionCreate, db: Session = Depends(get_db)):
 
-@router.post("/sessions")
-def log_session(session_data: FocusSessionCreate, db: Session = Depends(get_db)):
-    db_session = FocusSession(
-        user_id=session_data.user_id,
-        task_id=session_data.task_id,
-        duration_minutes=session_data.duration_minutes,
-    )
-    db.add(db_session)
+    get_or_404(db, User, data.user_id, "user_id")
+    get_or_404(db, Task, data.task_id, "task_id")
+
+    obj = SessionModel(**data.dict())
+    db.add(obj)
     db.commit()
-    db.refresh(db_session)
-    return db_session
+    db.refresh(obj)
+
+    return obj
 
 
-# -------------------- Analytics --------------------
-
+# ---------------- ANALYTICS (UPGRADED FOUNDATION) ----------------
 @router.get("/users/{user_id}/analytics")
-def get_user_analytics(user_id: str, db: Session = Depends(get_db)):
-    sessions = db.query(FocusSession).filter(
-        FocusSession.user_id == user_id
+def analytics(user_id: str, db: Session = Depends(get_db)):
+
+    sessions = db.query(SessionModel).filter(
+        SessionModel.user_id == user_id
     ).all()
+
+    if not sessions:
+        return {
+            "user_id": user_id,
+            "total_sessions": 0,
+            "total_minutes": 0,
+            "avg_session_length": 0,
+            "productivity_score": 0,
+            "consistency_score": 0,
+            "burnout_risk": 0
+        }
 
     total_sessions = len(sessions)
     total_minutes = sum(s.duration_minutes for s in sessions)
+    avg = total_minutes / total_sessions
 
-    avg_session_length = (
-        total_minutes / total_sessions if total_sessions > 0 else 0
+    # variance proxy (basic stability signal)
+    variance = sum((s.duration_minutes - avg) ** 2 for s in sessions) / total_sessions
+
+    # upgraded scoring baseline (still simple but more meaningful)
+    productivity_score = min((avg / 45) * 100, 100)
+    consistency_score = max(0, 100 - (variance / 20))
+
+    burnout_risk = min(
+        100,
+        (avg / 90) * 50 + (variance / 50) * 50
     )
-
-    productivity_score = 0
-    if total_sessions > 0:
-        productivity_score = min(
-            (avg_session_length / 45) * 100,
-            100
-        )
 
     return {
         "user_id": user_id,
         "total_sessions": total_sessions,
-        "total_focus_minutes": total_minutes,
-        "average_session_length": avg_session_length,
-        "productivity_score": round(productivity_score, 2)
+        "total_minutes": total_minutes,
+        "avg_session_length": round(avg, 2),
+        "productivity_score": round(productivity_score, 2),
+        "consistency_score": round(consistency_score, 2),
+        "burnout_risk": round(burnout_risk, 2)
     }

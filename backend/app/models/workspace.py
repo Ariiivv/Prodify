@@ -1,9 +1,7 @@
 import uuid
 from datetime import datetime
-
 from sqlalchemy import Column, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-
 from app.core.database import Base
 
 
@@ -16,8 +14,8 @@ class Workspace(Base):
 
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
 
-    # Relationships
     user = relationship("User", back_populates="workspaces")
+
     work_items = relationship(
         "WorkItem",
         back_populates="workspace",

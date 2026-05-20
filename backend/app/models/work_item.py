@@ -1,9 +1,7 @@
 import uuid
 from datetime import datetime
-
 from sqlalchemy import Column, String, DateTime, Integer, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
-
 from app.core.database import Base
 
 
@@ -15,7 +13,6 @@ class WorkItem(Base):
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
 
-    # one_time | recurring | long_term
     type = Column(String, nullable=False)
 
     total_estimated_minutes = Column(Integer, nullable=True)
@@ -29,6 +26,7 @@ class WorkItem(Base):
 
     user = relationship("User")
     workspace = relationship("Workspace", back_populates="work_items")
+
     tasks = relationship(
         "Task",
         back_populates="work_item",

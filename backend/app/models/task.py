@@ -14,6 +14,7 @@ class Task(Base):
     title = Column(String, nullable=False)
 
     work_item = relationship("WorkItem", back_populates="tasks")
+
     sessions = relationship(
         "Session",
         back_populates="task",
