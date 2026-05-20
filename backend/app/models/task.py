@@ -9,7 +9,9 @@ class Task(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
 
-    work_item_id = Column(String, ForeignKey("work_items.id"), nullable=False)
+    work_item_id = Column(
+        String, ForeignKey("work_items.id"), nullable=False, index=True
+    )
 
     title = Column(String, nullable=False)
 

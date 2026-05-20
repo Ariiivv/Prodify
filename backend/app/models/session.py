@@ -1,12 +1,15 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Integer, ForeignKey, Float
+from sqlalchemy import Column, String, DateTime, Integer, ForeignKey, Float, Index
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 
 class Session(Base):
     __tablename__ = "sessions"
+    __table_args__ = (
+        Index("ix_sessions_user_id_started_at", "user_id", "started_at"),
+    )
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
 
